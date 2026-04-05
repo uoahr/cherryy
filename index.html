@@ -1,29 +1,14 @@
 <!DOCTYPE html>
 <html lang="ko">
-
 <head>
     <meta charset="UTF-8">
-    <title>🌸 벚꽃이 내리는 날 🌸</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🌸 벚꽃 엔딩 🌸</title>
     <style>
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: #000;
-            /* 검은 배경 */
-            overflow: hidden;
-            /* 스크롤 방지 */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-        }
-
-        canvas {
-            display: block;
-        }
+        body { margin: 0; padding: 0; background-color: #000; overflow: hidden; touch-action: none; }
+        canvas { display: block; }
     </style>
 </head>
-
 <body>
     <canvas id="canvas"></canvas>
 
@@ -31,64 +16,87 @@
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
 
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+        let petals = [];
+        let grounded = [];
+        const shapes = ["🌸", "✿", "❀", "💮"];
 
-        const petals = [];
-        const petalShapes = ["🌸", "✿", "❀", "💮"];
-
-        class Petal {
-            constructor() {
-                this.x = Math.random() * canvas.width;
-                this.y = Math.random() * canvas.height - canvas.height;
-                this.size = Math.random() * 15 + 10;
-                this.speed = Math.random() * 2 + 1;
-                this.angle = Math.random() * 360;
-                this.spin = Math.random() * 2 - 1;
-                this.shape = petalShapes[Math.floor(Math.random() * petalShapes.length)];
-            }
-
-            draw() {
-                ctx.font = `${this.size}px serif`;
-                ctx.save();
-                ctx.translate(this.x, this.y);
-                ctx.rotate(this.angle * Math.PI / 180);
-                ctx.fillText(this.shape, 0, 0);
-                ctx.restore();
-            }
-
-            update() {
-                this.y += this.speed;
-                this.x += Math.sin(this.y / 50);
-                this.angle += this.spin;
-
-                if (this.y > canvas.height) {
-                    this.y = -20;
-                    this.x = Math.random() * canvas.width;
-                }
-            }
-        }
-
-        for (let i = 0; i < 50; i++) {
-            petals.push(new Petal());
-        }
-
-        function animate() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            petals.forEach(petal => {
-                petal.draw();
-                petal.update();
-            });
-            requestAnimationFrame(animate);
-        }
-
-        animate();
-
-        window.addEventListener('resize', () => {
+        function init() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
-        });
+            
+            // 기기 너비에 따른 크기 최적화 (모바일은 더 크게)
+            const isMobile = canvas.width < 600;
+            const sizeBase = isMobile ? 35 : 22;
+            const count = isMobile ? 60 : 80;
+
+            petals = [];
+            for (let i = 0; i < count; i++) {
+                petals.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    size: Math.random() * sizeBase + sizeBase,
+                    // ⭐ 속도 대폭 상향 (4~9 사이로 빠르게)
+                    speed: Math.random() * 5 + 4,
+                    angle: Math.random() * 360,
+                    spin: Math.random() * 5 - 2.5,
+                    shape: shapes[Math.floor(Math.random() * shapes.length)],
+                    wind: Math.random() * 2 - 1
+                });
+            }
+        }
+
+        function draw() {
+            // ⭐ 배경을 매번 완전히 지워서 '느릿한 잔상' 제거
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 1. 바닥에 쌓인 꽃잎 먼저 그리기
+            grounded.forEach(p => {
+                ctx.save();
+                ctx.font = `${p.size}px serif`;
+                ctx.globalAlpha = 0.6;
+                ctx.translate(p.x, p.y);
+                ctx.rotate(p.angle * Math.PI / 180);
+                ctx.fillText(p.shape, 0, 0);
+                ctx.restore();
+            });
+
+            // 2. 떨어지는 꽃잎 그리기 및 업데이트
+            petals.forEach(p => {
+                ctx.save();
+                ctx.font = `${p.size}px serif`;
+                ctx.translate(p.x, p.y);
+                ctx.rotate(p.angle * Math.PI / 180);
+                ctx.fillText(p.shape, 0, 0);
+                ctx.restore();
+
+                p.y += p.speed;
+                p.x += Math.sin(p.y / 30) + p.wind;
+                p.angle += p.spin;
+
+                // 바닥 도착 체크
+                if (p.y > canvas.height - 15) {
+                    // 바닥 데이터 저장 (너무 많이 쌓이지 않게 80개 제한)
+                    grounded.push({
+                        x: p.x,
+                        y: canvas.height - (Math.random() * 10 + 5),
+                        size: p.size * 0.7,
+                        shape: p.shape,
+                        angle: p.angle
+                    });
+                    if (grounded.length > 80) grounded.shift();
+
+                    // 다시 위에서 시작
+                    p.y = -50;
+                    p.x = Math.random() * canvas.width;
+                }
+            });
+
+            requestAnimationFrame(draw);
+        }
+
+        window.addEventListener('resize', init);
+        init();
+        draw();
     </script>
 </body>
-
 </html>
